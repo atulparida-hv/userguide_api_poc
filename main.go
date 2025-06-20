@@ -11,7 +11,7 @@ func main() {
 	r := mux.NewRouter()
 
 	// Public route example
-	r.HandleFunc("/download/public", PublicDownloadHandler).Methods("GET")
+	r.HandleFunc("/public/download", PublicDownloadHandler).Methods("GET")
 
 	// Protected route
 	r.Handle("/protected/download", AuthMiddleware(http.HandlerFunc(ProtectedDownloadHandler))).Methods("GET")
