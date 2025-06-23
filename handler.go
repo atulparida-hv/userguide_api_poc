@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
-	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -50,12 +49,7 @@ func (fh *FileHandler) DownloadUserGuideHandler(w http.ResponseWriter, r *http.R
 
 	// Set content disposition with proper escaping
 	escapedFilename := fh.utils.EscapeForHeader(safeFilename)
-	ext := strings.ToLower(filepath.Ext(safeFilename))
-	if ext == ".pdf" {
-		w.Header().Set("Content-Disposition", "inline; filename=\""+escapedFilename+"\"")
-	} else {
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+escapedFilename+"\"")
-	}
+	w.Header().Set("Content-Disposition", "attachment; filename=\""+escapedFilename+"\"")
 
 	// Security headers
 	w.Header().Set("X-Content-Type-Options", "nosniff")
