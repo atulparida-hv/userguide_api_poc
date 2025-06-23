@@ -3,24 +3,48 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
+	// Load configuration
+	config, err := LoadConfig("application.properties")
+	if err != nil {
+		log.Fatal("Failed to load configuration:", err)
+	}
+
+	if config.UserGuidePath == "" {
+		log.Fatal("User guide path cannot be empty")
+	}
+
+	// Create directory if needed
+	if _, err := os.Stat(config.UserGuidePath); os.IsNotExist(err) {
+		err := os.MkdirAll(config.UserGuidePath, 0755)
+		if err != nil {
+			log.Fatal("Failed to create userguides directory:", err)
+		}
+	}
+
+	// Initialize service with interface
+	var fileService FileServiceInterface = NewFileService(config.UserGuidePath, config.UserGuideFile)
+	fileHandler := NewFileHandler(fileService)
+	// Create router
 	r := mux.NewRouter()
+	r.Use(securityMiddleware)
 
-	// Public route example
-	r.HandleFunc("/public/download", PublicDownloadHandler).Methods("GET")
+	// Register routes using handler method
+	fileHandler.RegisterRoutes(r)
 
-	// Protected route
-	r.Handle("/protected/download", AuthMiddleware(http.HandlerFunc(ProtectedDownloadHandler))).Methods("GET")
+	log.Printf("Server starting on port %s", config.Port)
+	log.Printf("User guides directory: %s", config.UserGuidePath)
+	log.Printf("Configured user guide file: %s", config.UserGuideFile)
+	log.Println("Available endpoints:")
+	log.Println("  GET /download/userguide - Download configured user guide")
+	log.Println("  GET /health - Health check")
 
-	// Fallback for serving static PDF file
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("/static/"))))
-
-	// logging
-	log.Println("Server started on :8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
-
+	if err := http.ListenAndServe(":"+config.Port, r); err != nil {
+		log.Fatal("Server failed to start:", err)
+	}
 }
